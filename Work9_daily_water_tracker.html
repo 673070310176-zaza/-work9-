@@ -1,0 +1,1125 @@
+<!DOCTYPE html>
+<html lang="th" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Water Tracker - ระบบบันทึกและติดตามการดื่มน้ำประจำวัน</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            mint: '#10b981',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Kanit', 'Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Google Fonts (Kanit) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <!-- Custom CSS Animations & Styles -->
+    <style>
+        body {
+            font-family: 'Kanit', sans-serif;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        /* SVG Liquid Wave Animation styling */
+        .wave-container {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .wave {
+            position: absolute;
+            width: 200%;
+            height: 100%;
+            bottom: 0;
+            left: 0;
+            background: repeat-x;
+            transform: translate3d(0, 0, 0);
+        }
+
+        @keyframes wave-anim {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+
+        .animate-wave-slow {
+            animation: wave-anim 7s linear infinite;
+        }
+
+        .animate-wave-fast {
+            animation: wave-anim 3.5s linear infinite;
+        }
+
+        /* Smooth Liquid fill height transition */
+        .liquid-fill {
+            transition: height 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(156, 163, 175, 0.4);
+            border-radius: 9999px;
+        }
+
+        .nav-active {
+            color: #0ea5e9 !important;
+            font-weight: 600;
+        }
+        .dark .nav-active {
+            color: #38bdf8 !important;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 min-h-screen flex flex-col justify-between pb-20 md:pb-0 selection:bg-brand-500 selection:text-white">
+
+    <!-- Top Navigation Bar for Desktop & Mobile Header -->
+    <header class="sticky top-0 z-30 backdrop-blur-md bg-white/80 dark:bg-slate-900/80 border-b border-slate-200/80 dark:border-slate-800">
+        <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="p-2.5 bg-gradient-to-tr from-brand-600 to-teal-400 text-white rounded-2xl shadow-md shadow-brand-500/20">
+                    <i data-lucide="droplet" class="w-6 h-6 fill-current"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold bg-gradient-to-r from-brand-600 to-teal-500 bg-clip-text text-transparent dark:from-brand-400 dark:to-teal-300">
+                        AquaTrack
+                    </h1>
+                    <p class="text-[11px] text-slate-500 dark:text-slate-400 font-normal">ระบบบันทึกและติดตามการดื่มน้ำ</p>
+                </div>
+            </div>
+
+            <!-- Desktop Tab Links -->
+            <nav class="hidden md:flex items-center gap-1 bg-slate-100/80 dark:bg-slate-800/80 p-1.5 rounded-2xl border border-slate-200/60 dark:border-slate-700/60">
+                <button onclick="switchTab('home')" id="nav-btn-home" class="nav-tab-btn flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all nav-active">
+                    <i data-lucide="home" class="w-4 h-4"></i> หน้าหลัก
+                </button>
+                <button onclick="switchTab('history')" id="nav-btn-history" class="nav-tab-btn flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all">
+                    <i data-lucide="bar-chart-3" class="w-4 h-4"></i> ประวัติ
+                </button>
+                <button onclick="switchTab('tips')" id="nav-btn-tips" class="nav-tab-btn flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all">
+                    <i data-lucide="book-open" class="w-4 h-4"></i> เกร็ดความรู้
+                </button>
+                <button onclick="switchTab('settings')" id="nav-btn-settings" class="nav-tab-btn flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all">
+                    <i data-lucide="settings" class="w-4 h-4"></i> ตั้งค่า
+                </button>
+            </nav>
+
+            <!-- Quick Action / Theme Toggle -->
+            <div class="flex items-center gap-2">
+                <div class="hidden sm:flex items-center gap-1 px-3 py-1.5 bg-amber-500/10 border border-amber-500/20 rounded-full text-amber-600 dark:text-amber-400 text-xs font-semibold" title="จำนวนวันที่ดื่มน้ำสำเร็จอย่างต่อเนื่อง">
+                    <i data-lucide="flame" class="w-4 h-4 text-amber-500 fill-amber-500"></i>
+                    <span id="streak-counter-top">0</span> วันติดต่อกัน
+                </div>
+                <button id="theme-toggle" onclick="toggleTheme()" class="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-all" title="สลับธีม">
+                    <i data-lucide="sun" class="w-5 h-5 hidden dark:block text-amber-400"></i>
+                    <i data-lucide="moon" class="w-5 h-5 block dark:hidden text-slate-600"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container for Dynamic Views -->
+    <main class="max-w-5xl mx-auto px-4 py-6 w-full flex-1">
+
+        <!-- ================= PAGE 1: HOME ================= -->
+        <section id="page-home" class="page-view space-y-6">
+
+            <!-- Tip Banner -->
+            <div class="bg-gradient-to-r from-sky-500/10 via-teal-500/10 to-emerald-500/10 border border-sky-200/50 dark:border-sky-800/40 rounded-2xl p-4 flex items-start gap-3 shadow-sm relative overflow-hidden">
+                <div class="p-2 bg-sky-500/20 text-sky-600 dark:text-sky-400 rounded-xl mt-0.5">
+                    <i data-lucide="sparkles" class="w-5 h-5"></i>
+                </div>
+                <div class="flex-1">
+                    <h4 class="text-xs font-semibold uppercase tracking-wider text-sky-600 dark:text-sky-400 mb-0.5">เกร็ดสุขภาพวันนี้</h4>
+                    <p id="hydration-tip-text" class="text-sm text-slate-700 dark:text-slate-300">กำลังโหลดเกร็ดน่ารู้...</p>
+                </div>
+                <button onclick="nextTip()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1">
+                    <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                </button>
+            </div>
+
+            <!-- Cup Visualizer + Progress Section -->
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-6 items-stretch">
+
+                <!-- SVG Liquid Cup Visualizer (5 Cols) -->
+                <div class="md:col-span-5 bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-700/50 flex flex-col items-center justify-center relative overflow-hidden">
+                    <div class="text-center mb-4 z-10">
+                        <span class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">ระดับน้ำวันนี้</span>
+                        <div id="cup-percentage-text" class="text-4xl sm:text-5xl font-extrabold text-brand-600 dark:text-brand-400 tracking-tight mt-1">0%</div>
+                    </div>
+
+                    <!-- Glass Container -->
+                    <div class="relative w-44 h-64 border-4 border-slate-300/80 dark:border-slate-600 rounded-b-3xl rounded-t-lg overflow-hidden shadow-inner bg-slate-100/50 dark:bg-slate-900/50 flex flex-col justify-end">
+                        
+                        <!-- Scale Marks -->
+                        <div class="absolute inset-y-0 right-2 flex flex-col justify-between py-4 z-20 pointer-events-none opacity-40">
+                            <div class="w-3 border-b-2 border-slate-400 text-[10px] text-right pr-1">100%</div>
+                            <div class="w-2 border-b border-slate-400"></div>
+                            <div class="w-3 border-b-2 border-slate-400 text-[10px] text-right pr-1">75%</div>
+                            <div class="w-2 border-b border-slate-400"></div>
+                            <div class="w-3 border-b-2 border-slate-400 text-[10px] text-right pr-1">50%</div>
+                            <div class="w-2 border-b border-slate-400"></div>
+                            <div class="w-3 border-b-2 border-slate-400 text-[10px] text-right pr-1">25%</div>
+                            <div class="w-2 border-b border-slate-400"></div>
+                        </div>
+
+                        <!-- Liquid Fill -->
+                        <div id="liquid-fill" class="liquid-fill w-full relative bg-gradient-to-t from-brand-600 via-brand-500 to-sky-400" style="height: 0%;">
+                            <!-- Wave Effects -->
+                            <div class="wave-container absolute -top-4 left-0 w-full h-6 pointer-events-none opacity-80">
+                                <svg class="wave animate-wave-slow" viewBox="0 0 1200 120" preserveAspectRatio="none">
+                                    <path d="M0,0 C150,90 350,-40 500,40 C650,120 900,-20 1200,40 L1200,120 L0,120 Z" fill="#38bdf8"></path>
+                                </svg>
+                                <svg class="wave animate-wave-fast opacity-50" viewBox="0 0 1200 120" preserveAspectRatio="none">
+                                    <path d="M0,30 C200,-20 400,80 600,10 C800,-40 1000,70 1200,10 L1200,120 L0,120 Z" fill="#0284c7"></path>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="goal-status-badge" class="mt-4 px-3.5 py-1.5 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 flex items-center gap-1.5 z-10">
+                        <i data-lucide="target" class="w-3.5 h-3.5 text-brand-500"></i>
+                        <span id="status-badge-text">กำลังพยายามถึงเป้าหมาย</span>
+                    </div>
+                </div>
+
+                <!-- Stats & Intake Area (7 Cols) -->
+                <div class="md:col-span-7 flex flex-col justify-between space-y-4">
+                    
+                    <!-- Stats Cards Grid -->
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-white dark:bg-slate-800 p-5 rounded-3xl border border-slate-100 dark:border-slate-700/50 shadow-sm flex flex-col justify-between min-h-[135px]">
+                            <div class="flex justify-between items-center text-slate-500 dark:text-slate-400">
+                                <span class="text-xs font-semibold uppercase tracking-wider">ดื่มแล้ววันนี้</span>
+                                <i data-lucide="glass-water" class="w-4 h-4 text-brand-500"></i>
+                            </div>
+                            <div class="mt-2">
+                                <div class="flex items-baseline gap-1.5">
+                                    <span id="current-intake" class="text-3xl sm:text-4xl font-bold text-slate-800 dark:text-white tracking-tight">0</span>
+                                    <span class="text-sm font-medium text-slate-500 dark:text-slate-400">มล.</span>
+                                </div>
+                                <div class="h-5 flex items-center mt-1.5">
+                                    <p id="remaining-text" class="text-xs font-normal text-slate-500 dark:text-slate-400">ขาดอีก 2,000 มล.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-white dark:bg-slate-800 p-5 rounded-3xl border border-slate-100 dark:border-slate-700/50 shadow-sm flex flex-col justify-between min-h-[135px]">
+                            <div class="flex justify-between items-center text-slate-500 dark:text-slate-400">
+                                <span class="text-xs font-semibold uppercase tracking-wider">เป้าหมายประจำวัน</span>
+                                <i data-lucide="award" class="w-4 h-4 text-emerald-500"></i>
+                            </div>
+                            <div class="mt-2">
+                                <div class="flex items-baseline gap-1.5">
+                                    <span id="daily-goal" class="text-3xl sm:text-4xl font-bold text-slate-800 dark:text-white tracking-tight">2,000</span>
+                                    <span class="text-sm font-medium text-slate-500 dark:text-slate-400">มล.</span>
+                                </div>
+                                <div class="h-5 flex items-center mt-1.5">
+                                    <button onclick="switchTab('settings')" class="text-xs font-medium text-brand-500 hover:text-brand-600 dark:text-brand-400 dark:hover:text-brand-300 hover:underline inline-flex items-center gap-0.5">
+                                        แก้ไขเป้าหมาย <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Action Intake Buttons -->
+                    <div class="bg-white dark:bg-slate-800 p-5 rounded-3xl border border-slate-100 dark:border-slate-700/50 shadow-sm flex-1 flex flex-col justify-center">
+                        <h3 class="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-3 flex items-center justify-between">
+                            <span>บันทึกน้ำดื่มอย่างรวดเร็ว</span>
+                            <span class="text-xs font-normal text-slate-400 dark:text-slate-500">กดเพื่อเพิ่มปริมาณ</span>
+                        </h3>
+
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-3.5">
+                            <button onclick="addWater(100)" class="p-3 bg-slate-50 dark:bg-slate-700/50 hover:bg-brand-50 dark:hover:bg-brand-900/30 hover:border-brand-300 dark:hover:border-brand-700 border border-slate-200/80 dark:border-slate-600/80 rounded-2xl flex flex-col items-center gap-1 transition-all active:scale-95 group">
+                                <i data-lucide="cup-soda" class="w-5 h-5 text-brand-500 group-hover:scale-110 transition-transform"></i>
+                                <span class="text-xs font-semibold text-slate-800 dark:text-slate-200">+100 มล.</span>
+                                <span class="text-[10px] text-slate-500 dark:text-slate-400">จิบเล็กน้อย</span>
+                            </button>
+
+                            <button onclick="addWater(250)" class="p-3 bg-slate-50 dark:bg-slate-700/50 hover:bg-brand-50 dark:hover:bg-brand-900/30 hover:border-brand-300 dark:hover:border-brand-700 border border-slate-200/80 dark:border-slate-600/80 rounded-2xl flex flex-col items-center gap-1 transition-all active:scale-95 group">
+                                <i data-lucide="glass-water" class="w-5 h-5 text-brand-500 group-hover:scale-110 transition-transform"></i>
+                                <span class="text-xs font-semibold text-slate-800 dark:text-slate-200">+250 มล.</span>
+                                <span class="text-[10px] text-slate-500 dark:text-slate-400">1 แก้วมาตรฐาน</span>
+                            </button>
+
+                            <button onclick="addWater(500)" class="p-3 bg-slate-50 dark:bg-slate-700/50 hover:bg-brand-50 dark:hover:bg-brand-900/30 hover:border-brand-300 dark:hover:border-brand-700 border border-slate-200/80 dark:border-slate-600/80 rounded-2xl flex flex-col items-center gap-1 transition-all active:scale-95 group">
+                                <i data-lucide="container" class="w-5 h-5 text-brand-500 group-hover:scale-110 transition-transform"></i>
+                                <span class="text-xs font-semibold text-slate-800 dark:text-slate-200">+500 มล.</span>
+                                <span class="text-[10px] text-slate-500 dark:text-slate-400">1 ขวดเล็ก</span>
+                            </button>
+
+                            <button onclick="addWater(750)" class="p-3 bg-slate-50 dark:bg-slate-700/50 hover:bg-brand-50 dark:hover:bg-brand-900/30 hover:border-brand-300 dark:hover:border-brand-700 border border-slate-200/80 dark:border-slate-600/80 rounded-2xl flex flex-col items-center gap-1 transition-all active:scale-95 group">
+                                <i data-lucide="milk" class="w-5 h-5 text-brand-500 group-hover:scale-110 transition-transform"></i>
+                                <span class="text-xs font-semibold text-slate-800 dark:text-slate-200">+750 มล.</span>
+                                <span class="text-[10px] text-slate-500 dark:text-slate-400">1 ขวดใหญ่</span>
+                            </button>
+                        </div>
+
+                        <!-- Custom Intake Form -->
+                        <form onsubmit="handleCustomWaterSubmit(event)" class="flex gap-2">
+                            <div class="relative flex-1">
+                                <input type="number" id="custom-water-input" placeholder="ระบุปริมาณเอง (มล.)" min="1" max="3000" class="w-full pl-3 pr-10 py-2.5 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 dark:text-white">
+                                <span class="absolute right-3 top-2.5 text-xs text-slate-400">มล.</span>
+                            </div>
+                            <button type="submit" class="px-5 py-2.5 bg-brand-500 hover:bg-brand-600 active:bg-brand-700 text-white font-medium text-sm rounded-xl transition-colors flex items-center gap-1.5 shadow-sm">
+                                <i data-lucide="plus" class="w-4 h-4"></i> เพิ่มน้ำ
+                            </button>
+                        </form>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Recent Today Logs Preview -->
+            <div class="bg-white dark:bg-slate-800 p-5 rounded-3xl border border-slate-100 dark:border-slate-700/50 shadow-sm">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-base font-semibold text-slate-800 dark:text-white flex items-center gap-2">
+                        <i data-lucide="history" class="w-4 h-4 text-brand-500"></i> ประวัติการดื่มน้ำวันนี้
+                    </h3>
+                    <button onclick="undoLastAction()" class="text-xs text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 flex items-center gap-1 border border-slate-200 dark:border-slate-700 px-2.5 py-1 rounded-lg transition-colors">
+                        <i data-lucide="undo-2" class="w-3.5 h-3.5"></i> เลิกทำ (Undo)
+                    </button>
+                </div>
+                <div id="home-logs-container" class="space-y-2 max-h-48 overflow-y-auto pr-1">
+                    <!-- Rendered Today Logs -->
+                </div>
+            </div>
+
+        </section>
+
+        <!-- ================= PAGE 2: HISTORY ================= -->
+        <section id="page-history" class="page-view space-y-6 hidden">
+            
+            <!-- Summary Stats Header -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-700/50 shadow-sm">
+                    <span class="text-xs font-medium text-slate-400 block mb-1">เฉลี่ยต่อวัน (7 วัน)</span>
+                    <div class="text-2xl font-bold text-brand-600 dark:text-brand-400"><span id="stats-avg-7days">0</span> <span class="text-xs font-normal text-slate-400">มล.</span></div>
+                </div>
+                <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-700/50 shadow-sm">
+                    <span class="text-xs font-medium text-slate-400 block mb-1">อัตราความสำเร็จ</span>
+                    <div class="text-2xl font-bold text-emerald-600 dark:text-emerald-400"><span id="stats-completion-rate">0%</span></div>
+                </div>
+                <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-700/50 shadow-sm">
+                    <span class="text-xs font-medium text-slate-400 block mb-1">สถิติดื่มต่อเนื่อง (Streak)</span>
+                    <div class="text-2xl font-bold text-amber-500 flex items-center gap-1.5">
+                        <i data-lucide="flame" class="w-5 h-5 fill-current"></i> <span id="stats-streak-days">0</span> วัน
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chart Section -->
+            <div class="bg-white dark:bg-slate-800 p-5 rounded-3xl border border-slate-100 dark:border-slate-700/50 shadow-sm">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h3 class="text-base font-semibold text-slate-800 dark:text-white">กราฟประวัติการดื่มน้ำย้อนหลัง 7 วัน</h3>
+                        <p class="text-xs text-slate-400">เปรียบเทียบปริมาณน้ำดื่มจริงกับเป้าหมาย</p>
+                    </div>
+                </div>
+                <div class="relative w-full h-64">
+                    <canvas id="historyChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Calendar Streak View -->
+            <div class="bg-white dark:bg-slate-800 p-5 rounded-3xl border border-slate-100 dark:border-slate-700/50 shadow-sm">
+                <h3 class="text-base font-semibold text-slate-800 dark:text-white mb-2">ปฏิทินความสำเร็จประจำเดือน</h3>
+                <p class="text-xs text-slate-400 mb-4">สถานะการดื่มน้ำครบตามเป้าหมายในแต่ละวัน</p>
+                
+                <div id="calendar-grid" class="grid grid-cols-7 gap-2 text-center text-xs">
+                    <!-- Rendered Calendar Cells -->
+                </div>
+            </div>
+
+            <!-- Comprehensive Log History Table -->
+            <div class="bg-white dark:bg-slate-800 p-5 rounded-3xl border border-slate-100 dark:border-slate-700/50 shadow-sm">
+                <h3 class="text-base font-semibold text-slate-800 dark:text-white mb-3">บันทึกประวัติการดื่มน้ำทั้งหมดวันนี้</h3>
+                <div id="full-history-list" class="space-y-2 max-h-72 overflow-y-auto pr-1">
+                    <!-- Rendered Full Log Items -->
+                </div>
+            </div>
+
+        </section>
+
+        <!-- ================= PAGE 3: TIPS & KNOWLEDGE ================= -->
+        <section id="page-tips" class="page-view space-y-6 hidden">
+            
+            <!-- Hydration Calculator Widget -->
+            <div class="bg-gradient-to-br from-brand-500 to-teal-600 rounded-3xl p-6 text-white shadow-lg relative overflow-hidden">
+                <div class="relative z-10 max-w-2xl">
+                    <h3 class="text-xl font-bold mb-1 flex items-center gap-2">
+                        <i data-lucide="calculator" class="w-6 h-6"></i> คำนวณปริมาณน้ำดื่มที่เหมาะสมกับคุณ
+                    </h3>
+                    <p class="text-xs text-brand-100 mb-4">คำนวณจากน้ำหนักตัวและระดับการออกกำลังกาย/กิจกรรมประจำวัน</p>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                        <div>
+                            <label class="block text-xs font-medium text-brand-100 mb-1">น้ำหนักตัว (กก.)</label>
+                            <input type="number" id="calc-weight" placeholder="เช่น 60" min="20" max="250" class="w-full px-3 py-2 bg-white/10 backdrop-blur-md border border-white/20 rounded-xl text-sm placeholder-brand-200 text-white focus:outline-none focus:ring-2 focus:ring-white">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-brand-100 mb-1">ระดับกิจกรรมประจำวัน</label>
+                            <select id="calc-activity" class="w-full px-3 py-2 bg-slate-800 sm:bg-white/10 backdrop-blur-md border border-white/20 rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-white">
+                                <option value="1.0" class="text-slate-800">ทั่วไป (นั่งทำงาน/ไม่ได้ออกกำลังกาย)</option>
+                                <option value="1.2" class="text-slate-800">ปานกลาง (เดินบ่อย / ออกกำลังกาย 1-3 วัน/สัปดาห์)</option>
+                                <option value="1.4" class="text-slate-800">หนัก (เล่นกีฬา / ทำงานกลางแจ้ง / ออกกำลังกายหนัก)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between bg-white/10 backdrop-blur-md p-3.5 rounded-2xl border border-white/20">
+                        <span class="text-xs text-brand-100">ปริมาณน้ำที่แนะนำต่อวัน:</span>
+                        <span class="text-xl font-bold"><span id="calc-result-display">0</span> มล.</span>
+                    </div>
+                    <button onclick="applyCalculatedGoal()" class="mt-3 text-xs bg-white text-brand-600 font-semibold px-4 py-2 rounded-xl hover:bg-brand-50 transition-colors">
+                        ใช้ค่านี้เป็นเป้าหมายประจำวัน
+                    </button>
+                </div>
+            </div>
+
+            <!-- Health Benefits Grid -->
+            <div>
+                <h3 class="text-lg font-bold text-slate-800 dark:text-white mb-3">ประโยชน์สำคัญของการดื่มน้ำให้เพียงพอ</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div class="bg-white dark:bg-slate-800 p-4.5 rounded-2xl border border-slate-100 dark:border-slate-700/50 shadow-sm">
+                        <div class="p-2 bg-sky-500/10 text-sky-500 rounded-xl w-fit mb-2">
+                            <i data-lucide="brain" class="w-5 h-5"></i>
+                        </div>
+                        <h4 class="text-sm font-semibold text-slate-800 dark:text-white mb-1">เพิ่มประสิทธิภาพสมอง</h4>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">สมองมีส่วนประกอบของน้ำถึง 75% การขาดน้ำทำให้สมาธิสั้น เหนื่อยล้า และปวดศีรษะได้ง่าย</p>
+                    </div>
+
+                    <div class="bg-white dark:bg-slate-800 p-4.5 rounded-2xl border border-slate-100 dark:border-slate-700/50 shadow-sm">
+                        <div class="p-2 bg-teal-500/10 text-teal-500 rounded-xl w-fit mb-2">
+                            <i data-lucide="sparkles" class="w-5 h-5"></i>
+                        </div>
+                        <h4 class="text-sm font-semibold text-slate-800 dark:text-white mb-1">บำรุงผิวพรรณกระจ่างใส</h4>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">น้ำช่วยขับสารพิษออกจากร่างกาย เติมความชุ่มชื้นให้เซลล์ผิว ลดการเกิดริ้วรอยก่อนวัย</p>
+                    </div>
+
+                    <div class="bg-white dark:bg-slate-800 p-4.5 rounded-2xl border border-slate-100 dark:border-slate-700/50 shadow-sm">
+                        <div class="p-2 bg-emerald-500/10 text-emerald-500 rounded-xl w-fit mb-2">
+                            <i data-lucide="activity" class="w-5 h-5"></i>
+                        </div>
+                        <h4 class="text-sm font-semibold text-slate-800 dark:text-white mb-1">ช่วยระบบเผาผลาญ</h4>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">การดื่มน้ำเย็นก่อนมหารช่วยกระตุ้นระบบการเผาผลาญพลังงาน และช่วยให้การย่อยอาหารดีขึ้น</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Myths vs Facts Accordion -->
+            <div class="bg-white dark:bg-slate-800 p-5 rounded-3xl border border-slate-100 dark:border-slate-700/50 shadow-sm space-y-3">
+                <h3 class="text-base font-semibold text-slate-800 dark:text-white mb-2">ความเชื่อ & ข้อเท็จจริงเกี่ยวกับการดื่มน้ำ</h3>
+
+                <details class="group bg-slate-50 dark:bg-slate-700/30 rounded-2xl p-3.5 [&_summary::-webkit-details-marker]:hidden">
+                    <summary class="flex items-center justify-between cursor-pointer font-medium text-sm text-slate-700 dark:text-slate-200">
+                        <span>❌ ความเชื่อ: ควรดื่มน้ำเฉพาะตอนที่รู้สึกกระหายเท่านั้น?</span>
+                        <span class="transition group-open:rotate-180"><i data-lucide="chevron-down" class="w-4 h-4"></i></span>
+                    </summary>
+                    <p class="mt-2 text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                        <strong>ข้อเท็จจริง:</strong> เมื่อคุณรู้สึกกระหายน้ำ แสดงว่าร่างกายได้เข้าสู่ภาวะเริ่มขาดน้ำ (Mild Dehydration) ไปแล้วประมาณ 1-2% ควรจิบน้ำเป็นระยะตลอดทั้งวันโดยไม่ต้องรอให้รู้สึกหิวหรือกระหาย
+                    </p>
+                </details>
+
+                <details class="group bg-slate-50 dark:bg-slate-700/30 rounded-2xl p-3.5 [&_summary::-webkit-details-marker]:hidden">
+                    <summary class="flex items-center justify-between cursor-pointer font-medium text-sm text-slate-700 dark:text-slate-200">
+                        <span>❌ ความเชื่อ: เครื่องดื่มชา กาแฟ หรือน้ำหวาน แทนการดื่มน้ำเปล่าได้?</span>
+                        <span class="transition group-open:rotate-180"><i data-lucide="chevron-down" class="w-4 h-4"></i></span>
+                    </summary>
+                    <p class="mt-2 text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                        <strong>ข้อเท็จจริง:</strong> แม้จะมีส่วนผสมของน้ำ แต คาเฟอีนและน้ำตาลปริมาณสูงในเครื่องดื่มเหล่านั้นอาจขับน้ำออกจากร่างกายผ่านปัสสาวะมากขึ้น น้ำเปล่าสะอาดจึงเป็นตัวเลือกที่ดีที่สุด
+                    </p>
+                </details>
+            </div>
+
+        </section>
+
+        <!-- ================= PAGE 4: SETTINGS ================= -->
+        <section id="page-settings" class="page-view space-y-6 hidden">
+
+            <!-- Goal Setting Card -->
+            <div class="bg-white dark:bg-slate-800 p-5 rounded-3xl border border-slate-100 dark:border-slate-700/50 shadow-sm space-y-4">
+                <h3 class="text-base font-semibold text-slate-800 dark:text-white flex items-center gap-2">
+                    <i data-lucide="target" class="w-5 h-5 text-brand-500"></i> ตั้งค่าเป้าหมายการดื่มน้ำ
+                </h3>
+
+                <form onsubmit="saveGoalSettings(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">เป้าหมายประจำวัน (มล.)</label>
+                        <input type="number" id="setting-input-goal" min="500" max="10000" step="50" class="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 dark:text-white">
+                    </div>
+
+                    <button type="submit" class="px-5 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-medium text-sm rounded-xl transition-colors shadow-sm">
+                        บันทึกเป้าหมาย
+                    </button>
+                </form>
+            </div>
+
+            <!-- Reminder & Notification Settings -->
+            <div class="bg-white dark:bg-slate-800 p-5 rounded-3xl border border-slate-100 dark:border-slate-700/50 shadow-sm space-y-4">
+                <h3 class="text-base font-semibold text-slate-800 dark:text-white flex items-center gap-2">
+                    <i data-lucide="bell" class="w-5 h-5 text-brand-500"></i> การแจ้งเตือน & เสียงเอฟเฟกต์
+                </h3>
+
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between p-3.5 bg-slate-50 dark:bg-slate-700/40 rounded-2xl">
+                        <div>
+                            <span class="text-sm font-medium text-slate-700 dark:text-slate-200 block">แจ้งเตือนดื่มน้ำตามเวลา</span>
+                            <span class="text-xs text-slate-400">ส่งการแจ้งเตือนเตือนความจำประจำรอบ</span>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="setting-reminder-toggle" onchange="toggleReminderState()" class="sr-only peer">
+                            <div class="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer dark:bg-slate-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-500"></div>
+                        </label>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">ความถี่ในการแจ้งเตือน</label>
+                        <select id="setting-reminder-interval" onchange="updateReminderInterval()" class="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 dark:text-white">
+                            <option value="60">ทุกๆ 1 ชั่วโมง</option>
+                            <option value="90">ทุกๆ 1.5 ชั่วโมง</option>
+                            <option value="120">ทุกๆ 2 ชั่วโมง</option>
+                        </select>
+                    </div>
+
+                    <button onclick="testNotificationSound()" class="w-full py-2.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-700 dark:text-slate-200 text-xs font-medium rounded-xl transition-colors flex items-center justify-center gap-2">
+                        <i data-lucide="volume-2" class="w-4 h-4"></i> ทดสอบการส่งเสียงเอฟเฟกต์
+                    </button>
+                </div>
+            </div>
+
+            <!-- Danger Zone / Data Reset -->
+            <div class="bg-rose-50/50 dark:bg-rose-950/20 p-5 rounded-3xl border border-rose-200/60 dark:border-rose-900/40 space-y-3">
+                <h3 class="text-base font-semibold text-rose-700 dark:text-rose-400 flex items-center gap-2">
+                    <i data-lucide="alert-triangle" class="w-5 h-5"></i> จัดการข้อมูล
+                </h3>
+                <p class="text-xs text-rose-600/80 dark:text-rose-300/70">
+                    การล้างข้อมูลจะลบประวัติการดื่มน้ำทั้งหมด สถิติ และการตั้งค่าที่บันทึกไว้ในเบราว์เซอร์นี้
+                </p>
+                <button onclick="resetAllData()" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-medium text-xs rounded-xl transition-colors flex items-center gap-1.5">
+                    <i data-lucide="trash-2" class="w-4 h-4"></i> ล้างข้อมูลแอปพลิเคชันทั้งหมด
+                </button>
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- Bottom Navigation Bar for Mobile -->
+    <nav class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 px-4 py-2 flex items-center justify-around">
+        <button onclick="switchTab('home')" id="mob-btn-home" class="nav-tab-btn flex flex-col items-center gap-1 text-slate-400 text-[10px] nav-active">
+            <i data-lucide="home" class="w-5 h-5"></i> หน้าหลัก
+        </button>
+        <button onclick="switchTab('history')" id="mob-btn-history" class="nav-tab-btn flex flex-col items-center gap-1 text-slate-400 text-[10px]">
+            <i data-lucide="bar-chart-3" class="w-5 h-5"></i> ประวัติ
+        </button>
+        <button onclick="switchTab('tips')" id="mob-btn-tips" class="nav-tab-btn flex flex-col items-center gap-1 text-slate-400 text-[10px]">
+            <i data-lucide="book-open" class="w-5 h-5"></i> เกร็ดความรู้
+        </button>
+        <button onclick="switchTab('settings')" id="mob-btn-settings" class="nav-tab-btn flex flex-col items-center gap-1 text-slate-400 text-[10px]">
+            <i data-lucide="settings" class="w-5 h-5"></i> ตั้งค่า
+        </button>
+    </nav>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-200 dark:border-slate-800 py-4 text-center text-xs text-slate-400 hidden md:block">
+        AquaTrack &copy; Daily Water Tracker — เพื่อสุขภาพที่ดีในทุกๆ วัน
+    </footer>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        const STORAGE_KEY = 'aquatrack_spa_data_v2';
+
+        let appState = {
+            goal: 2000,
+            logs: [], // { id, amount, time, date }
+            history: {}, // 'YYYY-MM-DD': totalAmount
+            theme: 'light',
+            lastDate: new Date().toISOString().split('T')[0],
+            streak: 0,
+            reminder: {
+                enabled: false,
+                intervalMinutes: 60,
+                lastNotified: null
+            }
+        };
+
+        let chartInstance = null;
+        let reminderTimer = null;
+
+        const HYDRATION_TIPS = [
+            "การดื่มน้ำ 1 แก้วหลังตื่นนอน ช่วยกระตุ้นระบบอวัยวะภายในให้เริ่มทำงานได้ดีขึ้น",
+            "หากรู้สึกหิวกระทันหัน ลองดื่มน้ำก่อน เพราะบางครั้งร่างกายสับสนระหว่างความหิวกับอาการขาดน้ำ",
+            "การดื่มน้ำช่วยให้ผิวพรรณชุ่มชื้น ลดการเกิดริ้วรอยและความหมองคล้ำ",
+            "สมองประกอบด้วยน้ำถึง 75% การดื่มน้ำเพียงพอช่วยเพิ่มสมาธิและความจำ",
+            "ควรจิบน้ำทีละน้อยตลอดทั้งวัน ดีกว่าการดื่มครั้งละมากๆ ในเวลาเดียว",
+            "การดื่มน้ำเพียงพอช่วยลดอาการปวดศีรษะและไมเกรนได้",
+            "น้ำช่วยนำพาสารอาหารและออกซิเจนไปเลี้ยงเซลล์ต่างๆ ในร่างกาย"
+        ];
+        let currentTipIndex = 0;
+
+        /* ================= Audio Synthesizer (Web Audio API) ================= */
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        let audioCtx = null;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new AudioContext();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function playWaterDropSound() {
+            try {
+                initAudio();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.15);
+
+                gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.15);
+            } catch (e) {
+                console.log('Audio playback prevented', e);
+            }
+        }
+
+        function playSuccessSound() {
+            try {
+                initAudio();
+                const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+                notes.forEach((freq, index) => {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+
+                    osc.type = 'triangle';
+                    osc.frequency.value = freq;
+
+                    const startTime = audioCtx.currentTime + (index * 0.1);
+                    gain.gain.setValueAtTime(0.3, startTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.4);
+
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+
+                    osc.start(startTime);
+                    osc.stop(startTime + 0.4);
+                });
+            } catch (e) {
+                console.log('Audio playback prevented', e);
+            }
+        }
+
+        window.onload = function() {
+            loadData();
+            checkAndHandleDayChange();
+            setupTheme();
+            initChart();
+            updateUI();
+            setupLucideIcons();
+            initTip();
+            setupReminderTimer();
+
+            setTimeout(() => setupLucideIcons(), 100);
+        };
+
+        function setupLucideIcons() {
+            if (window.lucide) {
+                lucide.createIcons();
+            }
+        }
+
+        function loadData() {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    appState = { ...appState, ...parsed };
+                } catch (e) {
+                    console.error('Failed to parse local storage data', e);
+                }
+            }
+        }
+
+        function saveData() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
+        }
+
+        function checkAndHandleDayChange() {
+            const todayStr = new Date().toISOString().split('T')[0];
+            
+            if (appState.lastDate !== todayStr) {
+                const totalToday = calculateTotalIntake();
+                if (appState.lastDate) {
+                    appState.history[appState.lastDate] = totalToday;
+                }
+
+                // Update streak logic
+                if (totalToday >= appState.goal) {
+                    appState.streak += 1;
+                } else {
+                    appState.streak = 0;
+                }
+
+                appState.logs = [];
+                appState.lastDate = todayStr;
+                saveData();
+            }
+        }
+
+        function calculateTotalIntake() {
+            return appState.logs.reduce((sum, item) => sum + item.amount, 0);
+        }
+
+        /* Single Page Application View Router */
+        function switchTab(tabId) {
+            // Hide all pages
+            document.querySelectorAll('.page-view').forEach(page => page.classList.add('hidden'));
+            
+            // Show requested page
+            const target = document.getElementById(`page-${tabId}`);
+            if (target) target.classList.remove('hidden');
+
+            // Reset navigation active styles
+            document.querySelectorAll('.nav-tab-btn').forEach(btn => btn.classList.remove('nav-active'));
+
+            const desktopBtn = document.getElementById(`nav-btn-${tabId}`);
+            const mobBtn = document.getElementById(`mob-btn-${tabId}`);
+            if (desktopBtn) desktopBtn.classList.add('nav-active');
+            if (mobBtn) mobBtn.classList.add('nav-active');
+
+            if (tabId === 'history') {
+                updateHistoryPage();
+            }
+
+            setupLucideIcons();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function addWater(amount) {
+            checkAndHandleDayChange();
+
+            const prevTotal = calculateTotalIntake();
+            const logEntry = {
+                id: Date.now().toString(),
+                amount: parseInt(amount),
+                time: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
+                date: appState.lastDate
+            };
+
+            appState.logs.unshift(logEntry);
+            const newTotal = calculateTotalIntake();
+
+            playWaterDropSound();
+
+            if (prevTotal < appState.goal && newTotal >= appState.goal) {
+                triggerGoalCelebration();
+            }
+
+            saveData();
+            updateUI();
+        }
+
+        function handleCustomWaterSubmit(e) {
+            e.preventDefault();
+            const input = document.getElementById('custom-water-input');
+            const val = parseInt(input.value);
+            if (val && val > 0) {
+                addWater(val);
+                input.value = '';
+            }
+        }
+
+        function deleteLogItem(id) {
+            appState.logs = appState.logs.filter(item => item.id !== id);
+            saveData();
+            updateUI();
+        }
+
+        function undoLastAction() {
+            if (appState.logs.length > 0) {
+                appState.logs.shift();
+                saveData();
+                updateUI();
+            }
+        }
+
+        function triggerGoalCelebration() {
+            playSuccessSound();
+            if (window.confetti) {
+                confetti({
+                    particleCount: 100,
+                    spread: 70,
+                    origin: { y: 0.6 }
+                });
+            }
+        }
+
+        function updateUI() {
+            const current = calculateTotalIntake();
+            const goal = appState.goal;
+            const percentage = Math.min(Math.round((current / goal) * 100), 100);
+            const rawPercentage = Math.round((current / goal) * 100);
+
+            // Update Numbers
+            document.getElementById('current-intake').innerText = current.toLocaleString();
+            document.getElementById('daily-goal').innerText = goal.toLocaleString();
+            document.getElementById('cup-percentage-text').innerText = `${rawPercentage}%`;
+            document.getElementById('setting-input-goal').value = goal;
+            document.getElementById('streak-counter-top').innerText = appState.streak;
+
+            // Remaining Text with Balanced Line Height & Colors
+            const remaining = goal - current;
+            const remainingEl = document.getElementById('remaining-text');
+            if (remaining > 0) {
+                remainingEl.innerText = `ขาดอีก ${remaining.toLocaleString()} มล.`;
+                remainingEl.className = "text-xs font-normal text-slate-500 dark:text-slate-400";
+            } else {
+                remainingEl.innerText = `บรรลุเป้าหมายแล้ว! 🎉`;
+                remainingEl.className = "text-xs font-semibold text-emerald-600 dark:text-emerald-400";
+            }
+
+            // Glass Fill
+            document.getElementById('liquid-fill').style.height = `${percentage}%`;
+
+            // Badge text
+            const statusBadgeText = document.getElementById('status-badge-text');
+            if (rawPercentage >= 100) {
+                statusBadgeText.innerText = "บรรลุเป้าหมายแล้ว!";
+            } else if (rawPercentage >= 50) {
+                statusBadgeText.innerText = "ผ่านครึ่งทางแล้ว สู้ๆ!";
+            } else {
+                statusBadgeText.innerText = "กำลังพยายามถึงเป้าหมาย";
+            }
+
+            renderHomeLogs();
+            updateChart();
+            setupLucideIcons();
+        }
+
+        function renderHomeLogs() {
+            const container = document.getElementById('home-logs-container');
+            if (appState.logs.length === 0) {
+                container.innerHTML = `
+                    <div class="py-6 text-center text-slate-400 text-xs">
+                        ยังไม่มีรายการดื่มน้ำวันนี้ กดปุ่มด้านบนเพื่อบันทึก
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = appState.logs.map(log => `
+                <div class="flex items-center justify-between p-2.5 bg-slate-50 dark:bg-slate-700/40 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700/70 transition-colors group">
+                    <div class="flex items-center gap-2.5">
+                        <div class="p-1.5 bg-brand-100 dark:bg-brand-900/50 text-brand-600 dark:text-brand-300 rounded-lg">
+                            <i data-lucide="glass-water" class="w-4 h-4"></i>
+                        </div>
+                        <div>
+                            <span class="text-xs font-semibold text-slate-700 dark:text-slate-200">+${log.amount} มล.</span>
+                            <span class="text-[10px] text-slate-400 block">${log.time} น.</span>
+                        </div>
+                    </div>
+                    <button onclick="deleteLogItem('${log.id}')" class="text-slate-400 hover:text-rose-500 p-1 transition-colors" title="ลบ">
+                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function updateHistoryPage() {
+            const pastDays = getPast7Days();
+            let total7 = 0;
+            let successDays = 0;
+
+            pastDays.forEach(dayStr => {
+                const amount = (dayStr === appState.lastDate) ? calculateTotalIntake() : (appState.history[dayStr] || 0);
+                total7 += amount;
+                if (amount >= appState.goal) successDays++;
+            });
+
+            const avg7 = Math.round(total7 / 7);
+            const completionRate = Math.round((successDays / 7) * 100);
+
+            document.getElementById('stats-avg-7days').innerText = avg7.toLocaleString();
+            document.getElementById('stats-completion-rate').innerText = `${completionRate}%`;
+            document.getElementById('stats-streak-days').innerText = appState.streak;
+
+            renderCalendarGrid();
+            renderFullHistoryList();
+        }
+
+        function renderCalendarGrid() {
+            const container = document.getElementById('calendar-grid');
+            const past30Days = [];
+            for (let i = 27; i >= 0; i--) {
+                const d = new Date();
+                d.setDate(d.getDate() - i);
+                past30Days.push(d.toISOString().split('T')[0]);
+            }
+
+            container.innerHTML = past30Days.map(dayStr => {
+                const amount = (dayStr === appState.lastDate) ? calculateTotalIntake() : (appState.history[dayStr] || 0);
+                const isMet = amount >= appState.goal;
+                const dayNum = new Date(dayStr).getDate();
+
+                return `
+                    <div class="p-2 rounded-xl border ${isMet ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400' : 'bg-slate-50 dark:bg-slate-700/30 border-slate-200/50 dark:border-slate-700 text-slate-400'} flex flex-col items-center">
+                        <span class="font-bold">${dayNum}</span>
+                        <span class="text-[9px] mt-0.5">${amount > 0 ? amount + 'ml' : '-'}</span>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderFullHistoryList() {
+            const container = document.getElementById('full-history-list');
+            if (appState.logs.length === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-400 py-4 text-center">ไม่มีรายการบันทึกของวันนี้</p>`;
+                return;
+            }
+
+            container.innerHTML = appState.logs.map(log => `
+                <div class="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700/40 rounded-xl">
+                    <div class="flex items-center gap-3">
+                        <i data-lucide="droplets" class="w-4 h-4 text-brand-500"></i>
+                        <div>
+                            <span class="text-xs font-semibold text-slate-800 dark:text-slate-200">+${log.amount} มล.</span>
+                            <span class="text-[10px] text-slate-400 block">เวลา ${log.time} น.</span>
+                        </div>
+                    </div>
+                    <button onclick="deleteLogItem('${log.id}'); updateHistoryPage();" class="text-slate-400 hover:text-rose-500 p-1">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            `).join('');
+            setupLucideIcons();
+        }
+
+        function getPast7Days() {
+            const days = [];
+            for (let i = 6; i >= 0; i--) {
+                const d = new Date();
+                d.setDate(d.getDate() - i);
+                days.push(d.toISOString().split('T')[0]);
+            }
+            return days;
+        }
+
+        function formatDayLabel(dateStr) {
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('th-TH', { weekday: 'short', day: 'numeric' });
+        }
+
+        function initChart() {
+            const ctx = document.getElementById('historyChart').getContext('2d');
+            const pastDays = getPast7Days();
+            
+            const labels = pastDays.map(formatDayLabel);
+            const dataValues = pastDays.map(dayStr => {
+                if (dayStr === appState.lastDate) return calculateTotalIntake();
+                return appState.history[dayStr] || 0;
+            });
+
+            chartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'ปริมาณ (มล.)',
+                        data: dataValues,
+                        backgroundColor: 'rgba(14, 165, 233, 0.75)',
+                        hoverBackgroundColor: 'rgba(2, 132, 199, 1)',
+                        borderRadius: 8,
+                        borderSkipped: false,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: '#94a3b8', font: { family: 'Kanit', size: 11 } }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(148, 163, 184, 0.1)' },
+                            ticks: { color: '#94a3b8', font: { family: 'Kanit', size: 10 } }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateChart() {
+            if (!chartInstance) return;
+            const pastDays = getPast7Days();
+            chartInstance.data.labels = pastDays.map(formatDayLabel);
+            chartInstance.data.datasets[0].data = pastDays.map(dayStr => {
+                if (dayStr === appState.lastDate) return calculateTotalIntake();
+                return appState.history[dayStr] || 0;
+            });
+            chartInstance.update();
+        }
+
+        function initTip() {
+            currentTipIndex = Math.floor(Math.random() * HYDRATION_TIPS.length);
+            showTip();
+        }
+
+        function showTip() {
+            document.getElementById('hydration-tip-text').innerText = HYDRATION_TIPS[currentTipIndex];
+        }
+
+        function nextTip() {
+            currentTipIndex = (currentTipIndex + 1) % HYDRATION_TIPS.length;
+            showTip();
+        }
+
+        function applyCalculatedGoal() {
+            const weight = parseFloat(document.getElementById('calc-weight').value);
+            const act = parseFloat(document.getElementById('calc-activity').value);
+
+            if (weight && weight > 0) {
+                const calculated = Math.round(weight * 33 * act);
+                appState.goal = calculated;
+                document.getElementById('calc-result-display').innerText = calculated.toLocaleString();
+                saveData();
+                updateUI();
+                alert(`ตั้งเป้าหมายประจำวันใหม่เรียบร้อยแล้ว: ${calculated.toLocaleString()} มล.`);
+            } else {
+                alert('กรุณากรอกน้ำหนักตัวให้ถูกต้อง');
+            }
+        }
+
+        function saveGoalSettings(e) {
+            e.preventDefault();
+            const val = parseInt(document.getElementById('setting-input-goal').value);
+            if (val && val >= 500) {
+                appState.goal = val;
+                saveData();
+                updateUI();
+                alert('บันทึกเป้าหมายสำเร็จ!');
+            }
+        }
+
+        function setupTheme() {
+            if (appState.theme === 'dark' || (!('theme' in appState) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+                appState.theme = 'dark';
+            } else {
+                document.documentElement.classList.remove('dark');
+                appState.theme = 'light';
+            }
+        }
+
+        function toggleTheme() {
+            if (document.documentElement.classList.contains('dark')) {
+                document.documentElement.classList.remove('dark');
+                appState.theme = 'light';
+            } else {
+                document.documentElement.classList.add('dark');
+                appState.theme = 'dark';
+            }
+            saveData();
+        }
+
+        function resetAllData() {
+            if (confirm("คุณแน่ใจหรือไม่ว่าต้องการล้างข้อมูลทั้งหมด? การกระทำนี้จะลบประวัติทั้งหมดและไม่สามารถย้อนกลับได้")) {
+                localStorage.removeItem(STORAGE_KEY);
+                appState = {
+                    goal: 2000,
+                    logs: [],
+                    history: {},
+                    theme: 'light',
+                    lastDate: new Date().toISOString().split('T')[0],
+                    streak: 0,
+                    reminder: { enabled: false, intervalMinutes: 60, lastNotified: null }
+                };
+                saveData();
+                updateUI();
+                switchTab('home');
+            }
+        }
+
+        /* Reminders */
+        function toggleReminderState() {
+            const toggle = document.getElementById('setting-reminder-toggle');
+            appState.reminder.enabled = toggle.checked;
+            saveData();
+            setupReminderTimer();
+        }
+
+        function updateReminderInterval() {
+            const select = document.getElementById('setting-reminder-interval');
+            appState.reminder.intervalMinutes = parseInt(select.value);
+            saveData();
+            setupReminderTimer();
+        }
+
+        function setupReminderTimer() {
+            if (reminderTimer) clearInterval(reminderTimer);
+            if (appState.reminder.enabled) {
+                reminderTimer = setInterval(() => {
+                    playWaterDropSound();
+                }, appState.reminder.intervalMinutes * 60 * 1000);
+            }
+        }
+
+        function testNotificationSound() {
+            playWaterDropSound();
+        }
+    </script>
+</body>
+</html>
